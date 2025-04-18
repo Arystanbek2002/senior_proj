@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Create Supervision Invitation</title>
+</head>
+<body>
+  <h1>Create Supervision Invitation</h1>
+  <!-- In this demo form, we include a field for Doctor ID.
+       In production you may obtain this from the authentication token -->
+  <form id="inviteForm">
+    <label>
+      Doctor ID:
+      <input type="text" name="doctorId" placeholder="Enter Doctor ID" required>
+    </label>
+    <br>
+    <label>
+      User ID:
+      <input type="text" name="user" placeholder="Enter User ID" required>
+    </label>
+    <br>
+    <label>
+      Access Duration (Days):
+      <input type="number" name="accessDurationDays" placeholder="30" value="30" required>
+    </label>
+    <br>
+    <button type="submit">Send Invitation</button>
+  </form>
+  <div id="responseMessage"></div>
+
+  <script>
+    document.getElementById('inviteForm').addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const form = event.target;
+      const doctorId = form.doctorId.value;
+      const data = {
+        user: form.user.value,
+        accessDurationDays: form.accessDurationDays.value
+      };
+
+      try {
+        const response = await fetch(`/api/supervisions/${doctorId}/invite`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            // Optionally, include an Authorization header if required:
+             'Authorization': 'Bearer ' + localStorage.getItem('token')
+          },
+          body: JSON.stringify(data)
+        });
+        const result = await response.json();
+        document.getElementById('responseMessage').innerText = result.message;
+      } catch (err) {
+        document.getElementById('responseMessage').innerText = 'Error: ' + err;
+      }
+    });
+  </script>
+</body>
+</html>

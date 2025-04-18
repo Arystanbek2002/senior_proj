@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Загрузка инструментального анализа</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f9f9f9; padding: 2rem; }
+    form { background: #fff; padding: 1.5rem; border-radius: 6px; max-width: 500px; margin: auto; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    label { display: block; margin-bottom: 0.75rem; font-weight: bold; }
+    input[type="text"], input[type="file"] { width: 100%; padding: 0.5rem; margin-top: 0.25rem; margin-bottom: 1rem; border: 1px solid #ccc; border-radius: 4px; }
+    button { padding: 0.75rem 1.5rem; background: #007BFF; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    #message { text-align: center; margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <h1 style="text-align:center;">Инструментальный анализ</h1>
+  <form id="instrumentalForm">
+    <label>
+      Название анализа
+      <input type="text" name="analysis_name" required>
+    </label>
+    <label>
+      Изображение 1
+      <input type="file" name="image1" accept="image/*" required>
+    </label>
+    <label>
+      Изображение 2
+      <input type="file" name="image2" accept="image/*" required>
+    </label>
+    <button type="submit">Загрузить</button>
+  </form>
+  <div id="message"></div>
+
+  <script>
+    document.getElementById('instrumentalForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const formData = new FormData(form);
+      const token = localStorage.getItem('token');
+
+      try {
+        const res = await fetch('/api/analyses/instrumental', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer ' + token
+          },
+          body: formData
+        });
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById('message').innerText = data.message;
+        } else {
+          document.getElementById('message').innerText = data;
+        }
+      } catch (err) {
+        document.getElementById('message').innerText = 'Ошибка: ' + err;
+      }
+    });
+  </script>
+</body>
+</html>

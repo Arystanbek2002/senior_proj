@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Супервижн – Пользователи</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f9f9f9; margin:0; padding:2rem; }
+    h1 { text-align:center; }
+    ul { list-style:none; padding:0; max-width:600px; margin:auto; }
+    li { background:#fff; margin:.5rem 0; padding:1rem; border-radius:4px; }
+    .expires { color: #a00; font-size:.9rem; }
+    a.view { float:right; text-decoration:none; color:#007BFF; }
+    #message { text-align:center; color:red; margin-top:1rem; }
+  </style>
+</head>
+<body>
+  <h1>Супервижн – Пользователи</h1>
+  <ul id="usersList"></ul>
+  <div id="message"></div>
+
+  <script>
+    async function loadUsers() {
+      const list = document.getElementById('usersList');
+      const msg  = document.getElementById('message');
+      list.innerHTML = '';
+      msg.textContent = '';
+
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch('/api/supervisions/invitations', {
+          headers: { 'Authorization': 'Bearer ' + token }
+        });
+        if (!res.ok) throw await res.text();
+        const { users } = await res.json();
+
+        if (!users.length) {
+          list.innerHTML = '<li>Пользователи не найдены</li>';
+          return;
+        }
+
+        users.forEach(u => {
+          const li = document.createElement('li');
+          const expires = new Date(u.expiresAt).toLocaleString('ru-RU');
+          li.innerHTML = `
+            <strong>${u.name} ${u.surname}</strong><br>
+            Email: ${u.email}<br>
+            Телефон: ${u.phone || '—'}<br>
+            <span class="expires">Доступ до: ${expires}</span>
+            <a class="view" href="/api/analyses/user-overview?userId=${u.id}">Анализы ▶</a>
+          `;
+          list.appendChild(li);
+        });
+      } catch (err) {
+        console.error(err);
+        msg.textContent = 'Ошибка: ' + err;
+      }
+    }
+
+    // Automatically load on page load
+    window.addEventListener('DOMContentLoaded', loadUsers);
+  </script>
+</body>
+</html>

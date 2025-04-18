@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Просмотр анализа</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 2rem; text-align: center; background: #f9f9f9; }
+    .images { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+    .images img { max-width: 200px; max-height: 200px; cursor: pointer; transition: transform .2s; }
+    .images img.zoomed { position: fixed; top:50%; left:50%; transform: translate(-50%,-50%) scale(2); z-index: 1000; }
+  </style>
+</head>
+<body>
+  <h1>Детали инструментального анализа</h1>
+  <div class="images" id="images"></div>
+  <div id="message" style="color:red; margin-top:1rem;"></div>
+
+  <script>
+    async function loadImages() {
+      const params = new URLSearchParams(location.search);
+      const id = params.get('id');
+      if (!id) {
+        document.getElementById('message').textContent = 'Нет ID анализа в URL';
+        return;
+      }
+      const container = document.getElementById('images');
+      const token = localStorage.getItem('token');
+      for (let idx of [0,1]) {
+        try {
+          const res = await fetch(`/api/analyses/instrumental/${id}/image/${idx}`, {
+            headers:{ 'Authorization':'Bearer '+token }
+          });
+          if (!res.ok) throw await res.text();
+          const blob = await res.blob();
+          const url = URL.createObjectURL(blob);
+          const img = document.createElement('img');
+          img.src = url;
+          img.addEventListener('click', () => {
+            img.classList.toggle('zoomed');
+          });
+          container.appendChild(img);
+        } catch (e) {
+          document.getElementById('message').textContent = 'Ошибка: ' + e;
+        }
+      }
+    }
+    window.addEventListener('DOMContentLoaded', loadImages);
+  </script>
+</body>
+</html>

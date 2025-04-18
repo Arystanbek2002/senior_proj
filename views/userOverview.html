@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Обзор анализов пациента</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f9f9f9; margin:0; padding:2rem; }
+    h1 { text-align:center; margin-bottom:1rem; }
+    .tabs { display:flex; justify-content:center; margin-bottom:1rem; }
+    .tab {
+      padding:.75rem 1.5rem; margin:0 .5rem;
+      background:#e6e6e6; border-radius:4px; cursor:pointer;
+      user-select:none;
+    }
+    .tab.active { background:#007BFF; color:#fff; }
+    .content { max-width:800px; margin:auto; }
+    /* Instrumental entries */
+    .inst-entry {
+      background:#fff; margin:.5rem 0; padding:.75rem;
+      border-radius:4px; box-shadow:0 1px 3px rgba(0,0,0,0.1);
+    }
+    .inst-entry h2 {
+      margin:0; font-size:1rem; cursor:pointer;
+    }
+    .inst-entry h2:hover { text-decoration:underline; }
+    .images {
+      display:flex; gap:1rem; margin-top:.5rem;
+      flex-wrap:wrap;
+    }
+    .images.hidden { display:none; }
+    .images img {
+      max-width:45%; cursor:pointer; transition:transform .2s;
+      border-radius:4px;
+    }
+    .images img.zoomed {
+      position:fixed; top:50%; left:50%;
+      transform:translate(-50%,-50%) scale(1.3);
+      z-index:1000; background:#000;
+    }
+    /* Analyses cards */
+    .card { background:#fff; margin:.5rem 0; padding:1rem; border-radius:4px;
+      box-shadow:0 1px 3px rgba(0,0,0,0.1); }
+    .card h2 { margin:0 0 .5rem; }
+    .hidden { display:none; }
+    #message { text-align:center; color:red; margin-top:1rem; }
+  </style>
+</head>
+<body>
+  <h1>Обзор анализов пациента</h1>
+  <div class="tabs">
+    <div id="tabInst" class="tab active">Инструментальные анализы</div>
+    <div id="tabAnal" class="tab">Анализы</div>
+  </div>
+
+  <div class="content">
+    <!-- Instrumental section -->
+    <div id="instSection"></div>
+
+    <!-- Analyses section -->
+    <div id="analysesSection" class="hidden"></div>
+
+    <div id="message"></div>
+  </div>
+
+  <script>
+    const tabInst = document.getElementById('tabInst');
+    const tabAnal = document.getElementById('tabAnal');
+    const instSection = document.getElementById('instSection');
+    const analysesSection = document.getElementById('analysesSection');
+    const message = document.getElementById('message');
+
+    // Extract userId
+    const params = new URLSearchParams(window.location.search);
+    const userId = params.get('userId');
+    if (!userId) message.textContent = 'userId не указан в URL';
+
+    let instLoaded=false, analLoaded=false;
+    tabInst.onclick = () => {
+      tabInst.classList.add('active');
+      tabAnal.classList.remove('active');
+      instSection.classList.remove('hidden');
+      analysesSection.classList.add('hidden');
+      if (!instLoaded) { loadInstrumentals(); instLoaded=true; }
+    };
+    tabAnal.onclick = () => {
+      tabAnal.classList.add('active');
+      tabInst.classList.remove('active');
+      analysesSection.classList.remove('hidden');
+      instSection.classList.add('hidden');
+      if (!analLoaded) { loadAnalyses(); analLoaded=true; }
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      if (userId) tabInst.click();
+    });
+
+    // Load Instrumentals list
+    async function loadInstrumentals(){
+      instSection.innerHTML=''; message.textContent='';
+      try {
+        const res = await fetch(`/api/analyses/doctor-inst?userId=${userId}`, {
+          headers:{ 'Authorization':'Bearer '+localStorage.getItem('token') }
+        });
+        if (!res.ok) throw await res.text();
+        const { instrumentals } = await res.json();
+        if (!instrumentals.length) {
+          instSection.innerHTML = '<p>Нет инструментальных анализов</p>';
+          return;
+        }
+
+        instrumentals.forEach(item => {
+          // Entry container
+          const entry = document.createElement('div');
+          entry.className = 'inst-entry';
+
+          // Title
+          const h2 = document.createElement('h2');
+          const dt = new Date(item.upload_date).toLocaleString('ru-RU');
+          h2.textContent = `${item.analysis_name} — ${dt}`;
+          entry.appendChild(h2);
+
+          // Images container (hidden initially)
+          const imgsDiv = document.createElement('div');
+          imgsDiv.className = 'images hidden';
+          entry.appendChild(imgsDiv);
+
+          // Toggle on click
+          let loaded = false;
+          h2.onclick = async () => {
+            if (imgsDiv.classList.contains('hidden')) {
+              imgsDiv.classList.remove('hidden');
+              if (!loaded) {
+                // fetch both
+                for (let idx=0; idx<2; idx++){
+                  try {
+                    const r = await fetch(`/api/analyses/doctor-inst/${item.id}/image/${idx}`, {
+                      headers:{ 'Authorization':'Bearer '+localStorage.getItem('token') }
+                    });
+                    if (!r.ok) throw await r.text();
+                    const blob = await r.blob();
+                    const url = URL.createObjectURL(blob);
+                    const img = document.createElement('img');
+                    img.src = url;
+                    img.onclick = () => img.classList.toggle('zoomed');
+                    imgsDiv.appendChild(img);
+                  } catch(e){
+                    const err = document.createElement('span');
+                    err.textContent = `Ошибка загрузки изображения ${idx}`;
+                    imgsDiv.appendChild(err);
+                  }
+                }
+                loaded = true;
+              }
+            } else {
+              imgsDiv.classList.add('hidden');
+            }
+          };
+
+          instSection.appendChild(entry);
+        });
+      } catch(e){
+        console.error(e);
+        message.textContent = 'Ошибка загрузки инструментальных: ' + e;
+      }
+    }
+
+    // Load standard analyses
+    async function loadAnalyses(){
+      analysesSection.innerHTML=''; message.textContent='';
+      try {
+        const res = await fetch(`/api/analyses/doctor-user?userId=${userId}`, {
+          headers:{ 'Authorization':'Bearer '+localStorage.getItem('token') }
+        });
+        if (!res.ok) throw await res.text();
+        const { analyses } = await res.json();
+        if (!analyses.length) {
+          analysesSection.innerHTML = '<p>Нет анализов</p>';
+          return;
+        }
+        analyses.forEach(a => {
+          const card = document.createElement('div');
+          card.className = 'card';
+          const date = new Date(a.date_of_analysis).toLocaleDateString('ru-RU');
+          card.innerHTML = `
+            <h2>${a.name_of_analysis}</h2>
+            <p><strong>Категория:</strong> ${a.category}</p>
+            <p><strong>Дата:</strong> ${date}</p>
+            <ul>
+              ${a.components.map(c =>
+                `<li>${c.name}: ${c.result}` +
+                  (c.reference_range ? ` (реф.: ${c.reference_range})` : '') +
+                `</li>`
+              ).join('')}
+            </ul>
+          `;
+          analysesSection.appendChild(card);
+        });
+      } catch(e){
+        console.error(e);
+        message.textContent = 'Ошибка загрузки анализов: ' + e;
+      }
+    }
+  </script>
+</body>
+</html>

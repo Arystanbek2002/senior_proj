@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Логин врача</title>
+</head>
+<body>
+  <h1>Логин врача</h1>
+  <form id="loginForm">
+    <label>
+      Идентификатор (Email или Телефон): 
+      <input type="text" name="identifier" required>
+    </label>
+    <br>
+    <label>
+      Пароль: 
+      <input type="password" name="password" required>
+    </label>
+    <br>
+    <button type="submit">Войти</button>
+  </form>
+  <div id="message"></div>
+  
+  <script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const form = e.target;
+      const data = {
+        identifier: form.identifier.value,
+        password: form.password.value
+      };
+      
+      try {
+        const response = await fetch('/api/doctors/login', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        if(result.token) {
+          // Можно сохранить токен в localStorage для дальнейших запросов
+          localStorage.setItem('token', result.token);
+          document.getElementById('message').innerText = 'Логин успешен';
+        } else {
+          document.getElementById('message').innerText = result.message || 'Ошибка логина';
+        }
+      } catch (error) {
+        document.getElementById('message').innerText = 'Ошибка: ' + error;
+      }
+    });
+  </script>
+</body>
+</html>

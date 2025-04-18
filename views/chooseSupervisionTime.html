@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Выбор времени супервижна</title>
+</head>
+<body>
+  <h1>Создание супервижна</h1>
+  <div id="doctorInfo">
+    <p>Загрузка информации о докторе...</p>
+  </div>
+  <!-- Форма для выбора длительности доступа -->
+  <form id="supervisionForm" style="display:none;">
+    <label>
+      Длительность доступа (дней):
+      <input type="number" name="accessDurationDays" value="30" required>
+    </label>
+    <br>
+    <button type="submit">Создать супервижн</button>
+  </form>
+  <div id="responseMessage"></div>
+
+  <script>
+    // Извлекаем qrToken из URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const qrToken = urlParams.get('qrToken');
+    if (!qrToken) {
+      document.getElementById('doctorInfo').innerText = 'QR Token не найден в URL';
+    } else {
+      // Запрос имени доктора по qrToken
+      fetch(`/api/supervisions/doctor-name?qrToken=${encodeURIComponent(qrToken)}`)
+        .then(response => response.json())
+        .then(data => {
+          if(data.doctorName) {
+            document.getElementById('doctorInfo').innerHTML = `<p>Доктор: ${data.doctorName}</p><p>Вы согласны создать супервижн?</p>`;
+            document.getElementById('supervisionForm').style.display = 'block';
+          } else {
+            document.getElementById('doctorInfo').innerText = 'Ошибка при получении информации о докторе';
+          }
+        })
+        .catch(err => {
+          document.getElementById('doctorInfo').innerText = 'Ошибка: ' + err;
+        });
+    }
+
+    // Обработка отправки формы для создания супервижна
+    document.getElementById('supervisionForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const accessDurationDays = form.accessDurationDays.value;
+      
+      // Предполагается, что JWT-токен пользователя хранится, например, в localStorage
+      const userToken = localStorage.getItem('token');
+      
+      try {
+        const response = await fetch(`/api/supervisions/invite?qrToken=${encodeURIComponent(qrToken)}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + userToken
+          },
+          body: JSON.stringify({ accessDurationDays })
+        });
+        const result = await response.json();
+        document.getElementById('responseMessage').innerText = result.message;
+      } catch (error) {
+        document.getElementById('responseMessage').innerText = 'Ошибка: ' + error;
+      }
+    });
+  </script>
+</body>
+</html>

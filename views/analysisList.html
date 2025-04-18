@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Мои анализы</title>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f9f9f9; margin: 0; padding: 2rem; }
+    h1 { text-align: center; }
+    .search { text-align: center; margin-bottom: 1rem; }
+    .search input { padding: .5rem; width: 300px; border: 1px solid #ccc; border-radius: 4px; }
+    .list { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+    .card { background: #fff; padding: 1rem; border-radius: 6px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+    .card h2 { margin: 0 0 .5rem; font-size: 1.1rem; }
+    .card p { margin: .25rem 0; color: #555; }
+    .components { margin-top: .5rem; padding-left: 1rem; }
+    .components li { margin-bottom: .25rem; color: #333; }
+  </style>
+</head>
+<body>
+  <h1>Мои анализы</h1>
+  <div class="search">
+    <input type="text" id="searchInput" placeholder="Поиск по названию анализа…" />
+  </div>
+  <div id="list" class="list"></div>
+
+  <script>
+    const listEl = document.getElementById('list');
+    const searchInput = document.getElementById('searchInput');
+    let analyses = [];
+
+    async function loadAnalyses() {
+      try {
+        const res = await fetch('/api/analyses/analyses', {
+          headers: {
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+          }
+        });
+        const data = await res.json();
+        analyses = data.analyses || [];
+        render(analyses);
+      } catch (e) {
+        listEl.innerHTML = '<p>Ошибка загрузки данных</p>';
+        console.error(e);
+      }
+    }
+
+    function render(items) {
+      const term = searchInput.value.trim().toLowerCase();
+      listEl.innerHTML = '';
+      const filtered = items.filter(a =>
+        a.name_of_analysis.toLowerCase().includes(term)
+      );
+      if (!filtered.length) {
+        listEl.innerHTML = '<p>Ничего не найдено</p>';
+        return;
+      }
+      filtered.forEach(a => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        const date = new Date(a.date_of_analysis).toLocaleDateString('ru-RU');
+        card.innerHTML = `
+          <h2>${a.name_of_analysis}</h2>
+          <p><strong>Категория:</strong> ${a.category}</p>
+          <p><strong>Дата:</strong> ${date}</p>
+          <div>
+            <strong>Компоненты:</strong>
+            <ul class="components">
+              ${a.components.map(c =>
+                `<li>${c.name}: ${c.result}` +
+                  (c.reference_range ? ` (реф.: ${c.reference_range})` : '') +
+                `</li>`
+              ).join('')}
+            </ul>
+          </div>
+        `;
+        listEl.appendChild(card);
+      });
+    }
+
+    searchInput.addEventListener('input', () => render(analyses));
+    window.addEventListener('DOMContentLoaded', loadAnalyses);
+  </script>
+</body>
+</html>

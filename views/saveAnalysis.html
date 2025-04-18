@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Создать анализ</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 2rem; background: #f9f9f9; }
+    form { max-width: 600px; margin: auto; background: #fff; padding: 1.5rem; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    label { display: block; margin-bottom: .5rem; font-weight: bold; }
+    input, select, textarea { width: 100%; padding: .5rem; margin-bottom: 1rem; border: 1px solid #ccc; border-radius: 4px; }
+    button { padding: .75rem 1.5rem; background: #007BFF; color: #fff; border: none; border-radius: 4px; cursor: pointer; }
+    button:hover { background: #0056b3; }
+    #message { text-align: center; margin-top: 1rem; }
+    .component-row { display: flex; gap: 1rem; margin-bottom: .5rem; }
+    .component-row > input { flex: 1; }
+  </style>
+</head>
+<body>
+  <h1 style="text-align:center;">Создать анализ</h1>
+  <form id="analysisForm">
+    <label for="name_of_analysis">Название анализа</label>
+    <input type="text" id="name_of_analysis" name="name_of_analysis" required>
+
+    <label for="category">Категория</label>
+    <select id="category" name="category" required>
+      <option value="">— выберите категорию —</option>
+      <option value="Биохимия">Биохимия</option>
+      <option value="Гематология">Гематология</option>
+      <option value="Гистопатология">Гистопатология</option>
+      <option value="Иммунология">Иммунология</option>
+      <option value="Клинические исследования">Клинические исследования</option>
+      <option value="Коагулология">Коагулология</option>
+      <option value="Микробиология">Микробиология</option>
+      <option value="Цитология">Цитология</option>
+    </select>
+
+    <label>Компоненты</label>
+    <div id="componentsContainer">
+      <div class="component-row">
+        <input type="text" placeholder="Имя компонента" class="comp-name" required>
+        <input type="text" placeholder="Результат" class="comp-result" required>
+        <input type="text" placeholder="Референтный диапазон" class="comp-ref">
+      </div>
+    </div>
+    <button type="button" id="addComponent">Добавить компонент</button>
+
+    <label for="date_of_analysis">Дата анализа</label>
+    <input type="text" id="date_of_analysis" name="date_of_analysis" placeholder="ДД.MM.ГГГГ" required>
+
+    <button type="submit">Сохранить анализ</button>
+  </form>
+
+  <div id="message"></div>
+
+  <script>
+    // Добавление новой строки компонента
+    document.getElementById('addComponent').addEventListener('click', () => {
+      const row = document.createElement('div');
+      row.className = 'component-row';
+      row.innerHTML = `
+        <input type="text" placeholder="Имя компонента" class="comp-name" required>
+        <input type="text" placeholder="Результат" class="comp-result" required>
+        <input type="text" placeholder="Референтный диапазон" class="comp-ref">
+      `;
+      document.getElementById('componentsContainer').appendChild(row);
+    });
+
+    // Обработка отправки формы
+    document.getElementById('analysisForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      // Собираем данные формы
+      const name_of_analysis = document.getElementById('name_of_analysis').value;
+      const category = document.getElementById('category').value;
+      const date_of_analysis = document.getElementById('date_of_analysis').value;
+      // Собираем компоненты
+      const components = Array.from(document.querySelectorAll('.component-row')).map(row => ({
+        name: row.querySelector('.comp-name').value,
+        result: row.querySelector('.comp-result').value,
+        reference_range: row.querySelector('.comp-ref').value
+      }));
+
+      // AJAX-запрос
+      try {
+        const response = await fetch('/api/analyses/save-analysis', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+          },
+          body: JSON.stringify({ name_of_analysis, category, date_of_analysis, components })
+        });
+        const data = await response.json();
+        document.getElementById('message').innerText = data.message || 'OK';
+      } catch (err) {
+        document.getElementById('message').innerText = 'Ошибка: ' + err;
+      }
+    });
+  </script>
+</body>
+</html>

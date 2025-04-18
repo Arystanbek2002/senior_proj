@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Мои инструментальные анализы</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 2rem; background: #f9f9f9; }
+    h1 { text-align: center; }
+    ul { list-style: none; padding: 0; max-width: 600px; margin: auto; }
+    li { background: #fff; margin: .5rem 0; padding: .75rem; border-radius: 4px; cursor: pointer; }
+    li:hover { background: #e6f7ff; }
+  </style>
+</head>
+<body>
+  <h1>Мои инструментальные анализы</h1>
+  <ul id="list"></ul>
+  <div id="message" style="text-align:center; color:red;"></div>
+
+  <script>
+    const listEl = document.getElementById('list');
+    const msgEl = document.getElementById('message');
+    async function load() {
+      try {
+        const res = await fetch('/api/analyses/get-instrumentals', {
+          headers:{ 'Authorization':'Bearer '+localStorage.getItem('token') }
+        });
+        if (!res.ok) throw await res.text();
+        const arr = await res.json();
+        arr.forEach(item => {
+          const li = document.createElement('li');
+          li.textContent = `${item.analysis_name} — ${new Date(item.upload_date).toLocaleString()}`;
+          li.addEventListener('click', ()=>{
+            location.href = `/api/analyses/instrumental-detail-page?id=${item.id}`;
+          });
+          listEl.appendChild(li);
+        });
+      } catch (e) {
+        msgEl.textContent = 'Ошибка: ' + e;
+      }
+    }
+    window.addEventListener('DOMContentLoaded', load);
+  </script>
+</body>
+</html>

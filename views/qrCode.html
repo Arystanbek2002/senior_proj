@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Your QR Code</title>
+  <style>
+    .qr-container {
+      text-align: center;
+      margin-top: 50px;
+    }
+    .qr-image {
+      max-width: 300px;
+    }
+  </style>
+</head>
+<body>
+  <div class="qr-container">
+    <h1>Your QR Code</h1>
+    <div id="qrCodeContainer">
+      <p>Loading QR Code...</p>
+    </div>
+    <div id="qrLink"></div>
+  </div>
+
+  <!-- Include QRCode.js from CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    // Retrieve the user token from localStorage (if needed)
+    const userToken = localStorage.getItem('token');
+
+    // Fetch the QR URL from the server.
+    fetch('/api/supervisions/qr-code', {
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + userToken
+      }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.url) {
+        // Display the URL as text below the QR code.
+        document.getElementById('qrLink').innerHTML = `<p>Link: <a href="${data.url}">${data.url}</a></p>`;
+        
+        // Generate the QR code using QRCode.js
+        const qrContainer = document.getElementById('qrCodeContainer');
+        qrContainer.innerHTML = "";
+        new QRCode(qrContainer, {
+          text: data.url,
+          width: 300,
+          height: 300
+        });
+      } else {
+        document.getElementById('qrCodeContainer').innerText = 'Error loading QR code';
+      }
+    })
+    .catch(err => {
+      document.getElementById('qrCodeContainer').innerText = 'Error: ' + err;
+    });
+  </script>
+</body>
+</html>

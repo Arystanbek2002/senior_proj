@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Реестр пациентов</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background-color: #f9f9f9;
+    }
+    .container {
+      display: flex;
+      height: 100vh;
+    }
+    /* Левое меню (sidebar) */
+    .sidebar {
+      width: 300px;
+      background-color: #fff;
+      border-right: 1px solid #ddd;
+      padding: 20px;
+    }
+    .sidebar h2 {
+      margin-top: 0;
+      margin-bottom: 1.5rem;
+      line-height: 1.3;
+    }
+    .sidebar button {
+      display: block;
+      width: 100%;
+      margin-bottom: 1rem;
+      padding: 10px;
+      background-color: #e6e6e6;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    .sidebar button:hover {
+      background-color: #dcdcdc;
+    }
+    /* Основная часть */
+    .content {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+    }
+    .content h1 {
+      margin-top: 0;
+    }
+    .search-container {
+      margin-bottom: 1rem;
+    }
+    .search-container input {
+      width: 300px;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    /* Список пациентов в виде сетки */
+    .patient-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 20px;
+    }
+    /* Карточка пациента */
+    .patient-card {
+      background-color: #fff;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      padding: 15px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .patient-card h3 {
+      margin: 0 0 10px 0;
+      font-size: 18px;
+    }
+    .patient-card p {
+      margin: 5px 0;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Левое меню (sidebar) -->
+    <aside class="sidebar">
+      <h2>Добро пожаловать,<br>Мергуля Имам!</h2>
+      <button>Личный профиль доктора</button>
+      <button>Добавить пациента</button>
+      <button>Выйти</button>
+    </aside>
+
+    <!-- Основной контент -->
+    <main class="content">
+      <h1>Реестр пациентов</h1>
+      <div class="search-container">
+        <input type="text" id="searchInput" placeholder="Поиск по имени, фамилии или email" />
+      </div>
+      <div id="patientList" class="patient-list">
+        <!-- Сюда будут добавляться карточки пользователей -->
+      </div>
+    </main>
+  </div>
+
+  <script>
+    const patientList = document.getElementById('patientList');
+    const searchInput = document.getElementById('searchInput');
+    let users = [];
+
+    // Функция загрузки пользователей с сервера
+    async function loadUsers() {
+      try {
+        const response = await fetch('/api/supervisions/invitations', {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + localStorage.getItem('token')
+          }
+        });
+        const data = await response.json();
+
+        if (!data.users) {
+          patientList.innerHTML = '<p>Нет пользователей</p>';
+          return;
+        }
+
+        users = data.users;
+        renderUsers(users);
+      } catch (error) {
+        console.error('Ошибка при загрузке пользователей:', error);
+        patientList.innerHTML = '<p>Ошибка при загрузке списка</p>';
+      }
+    }
+
+    // Функция для отрисовки карточек пользователей
+    function renderUsers(userList) {
+      patientList.innerHTML = '';
+      const filterText = searchInput.value.trim().toLowerCase();
+
+      const filtered = userList.filter(user => {
+        const fullName = `${user.name || ''} ${user.surname || ''}`.trim().toLowerCase();
+        const email = user.email.toLowerCase();
+        return fullName.includes(filterText) || email.includes(filterText);
+      });
+
+      if (filtered.length === 0) {
+        patientList.innerHTML = '<p>Ничего не найдено</p>';
+        return;
+      }
+
+      filtered.forEach(user => {
+        const card = document.createElement('div');
+        card.className = 'patient-card';
+
+        card.innerHTML = `
+          <h3>${user.name || 'Без имени'} ${user.surname || ''}</h3>
+          <p>Email: ${user.email}</p>
+          <p>Телефон: ${user.phone || 'Не указан'}</p>
+          <p>ID пользователя: ${user._id}</p>
+        `;
+        patientList.appendChild(card);
+      });
+    }
+
+    searchInput.addEventListener('input', () => {
+      renderUsers(users);
+    });
+
+    window.addEventListener('DOMContentLoaded', loadUsers);
+  </script>
+</body>
+</html>

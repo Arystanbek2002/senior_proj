@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <title>Регистрация врача</title>
+</head>
+<body>
+  <h1>Регистрация врача</h1>
+  <form id="registerForm">
+    <label>
+      Имя: 
+      <input type="text" name="name" required>
+    </label>
+    <br>
+    <label>
+      Email: 
+      <input type="email" name="email" required>
+    </label>
+    <br>
+    <label>
+      Телефон: 
+      <input type="text" name="phone" required>
+    </label>
+    <br>
+    <label>
+      Пароль: 
+      <input type="password" name="password" required>
+    </label>
+    <br>
+    <label>
+      Специализация: 
+      <input type="text" name="specialization">
+    </label>
+    <br>
+    <label>
+      Язык: 
+      <input type="text" name="language">
+    </label>
+    <br>
+    <button type="submit">Зарегистрироваться</button>
+  </form>
+  <div id="message"></div>
+  
+  <script>
+    document.getElementById('registerForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const form = e.target;
+      const data = {
+        name: form.name.value,
+        email: form.email.value,
+        phone: form.phone.value,
+        password: form.password.value,
+        specialization: form.specialization.value,
+        language: form.language.value
+      };
+      
+      try {
+        const response = await fetch('/api/doctors/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        });
+        // Предполагаем, что сервер возвращает текстовое сообщение
+        const result = await response.text();
+        document.getElementById('message').innerText = result;
+      } catch (error) {
+        document.getElementById('message').innerText = 'Ошибка: ' + error;
+      }
+    });
+  </script>
+</body>
+</html>
